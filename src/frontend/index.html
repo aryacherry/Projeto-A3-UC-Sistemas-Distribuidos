@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Reservas - Restaurante</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Sistema de Reservas</h1>
+        
+        <div class="tabs">
+            <button class="tab-button active" onclick="openTab('create')">Nova Reserva</button>
+            <button class="tab-button" onclick="openTab('list')">Listar Reservas</button>
+            <button class="tab-button" onclick="openTab('reports')">Relatórios</button>
+        </div>
+        
+        <div id="create" class="tab-content active">
+            <h2>Criar Nova Reserva</h2>
+            <form id="reservation-form">
+                <div class="form-group">
+                    <label for="responsibleName">Nome do Cliente:</label>
+                    <input type="text" id="responsibleName" required>
+                </div>
+                <div class="form-group">
+                    <label for="date">Data:</label>
+                    <input type="date" id="date" required>
+                </div>
+                <div class="form-group">
+                    <label for="time">Hora:</label>
+                    <input type="time" id="time" required>
+                </div>
+                <div class="form-group">
+                    <label for="tableNumber">Número da Mesa:</label>
+                    <input type="number" id="tableNumber" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="peopleCount">Número de Pessoas:</label>
+                    <input type="number" id="peopleCount" min="1" required>
+                </div>
+                <button type="submit">Criar Reserva</button>
+            </form>
+        </div>
+        
+        <div id="list" class="tab-content">
+            <h2>Reservas</h2>
+            <div class="filters">
+                <input type="date" id="filter-date">
+                <button onclick="filterByDate()">Filtrar por Data</button>
+                <button onclick="loadReservations()">Atualizar Lista</button>
+            </div>
+            <div id="reservations-list"></div>
+        </div>
+        
+        <div id="reports" class="tab-content">
+            <h2>Relatórios</h2>
+            <div class="report-section">
+                <h3>Por Período</h3>
+                <div class="form-group">
+                    <label for="start-date">Data Inicial:</label>
+                    <input type="date" id="start-date">
+                </div>
+                <div class="form-group">
+                    <label for="end-date">Data Final:</label>
+                    <input type="date" id="end-date">
+                </div>
+                <button onclick="generatePeriodReport()">Gerar Relatório</button>
+                <div id="period-report-result" class="report-result"></div>
+            </div>
+            
+            <div class="report-section">
+                <h3>Por Mesa</h3>
+                <div class="form-group">
+                    <label for="table-number-report">Número da Mesa:</label>
+                    <input type="number" id="table-number-report" min="1">
+                </div>
+                <button onclick="generateTableReport()">Gerar Relatório</button>
+                <div id="table-report-result" class="report-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
