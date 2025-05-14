@@ -3,8 +3,6 @@ const API_BASE_URL = 'http://localhost:3000/gerente';
 document.getElementById('form-periodo').addEventListener('submit', async (e) => {
   e.preventDefault();
 
-
-
   const inicio = document.getElementById('inicio').value;
   const fim = document.getElementById('fim').value;
   const status = document.getElementById('status').value;
@@ -145,51 +143,33 @@ document.getElementById('form-cadastrar-garcom').addEventListener('submit', asyn
   }
 });
 
-// Variável global para armazenar garçons
+// Variável para armazenar a lista de garçons
 let garconsCadastrados = [];
 
-// Função para carregar garçons
+// Função para carregar a lista de garçons
 async function carregarGarcons() {
   try {
     const response = await fetch(`${API_BASE_URL}/garcons`);
+    if (!response.ok) throw new Error('Erro ao carregar garçons');
     
-    if (!response.ok) {
-      throw new Error(`Erro ${response.status}: ${response.statusText}`);
-    }
-    
-    const garcons = await response.json();
-    const listaDiv = document.getElementById('lista-garcons');
-    
-    if (garcons.length === 0) {
-      listaDiv.innerHTML = '<p>Nenhum garçom cadastrado.</p>';
-      return;
-    }
-
-    let html = '<ul>';
-    garcons.forEach(garcom => {
-      html += `<li>${garcom.nome}</li>`;
-    });
-    html += '</ul>';
-
-    listaDiv.innerHTML = html;
+    garconsCadastrados = await response.json();
+    renderizarListaGarcons();
   } catch (error) {
-    console.error('Erro ao carregar garçons:', error);
+    console.error('Erro:', error);
     showMessage(error.message, 'error');
   }
 }
 
-// Garante que a função tem o nome correto
-document.addEventListener('DOMContentLoaded', carregarGarcons);
-
-// Função para atualizar a exibição
-function atualizarListaGarcons() {
-  const listaDiv = document.getElementById('lista-garcons');
+// Função para renderizar a tabela com os garçons
+function renderizarListaGarcons() {
+  const container = document.getElementById('lista-garcons');
   
   if (garconsCadastrados.length === 0) {
-    listaDiv.innerHTML = '<p>Nenhum garçom cadastrado.</p>';
+    container.innerHTML = '<p>Nenhum garçom cadastrado.</p>';
     return;
   }
 
+  // Cria a tabela com os dados
   let html = `
     <table class="tabela-garcons">
       <thead>
@@ -201,7 +181,8 @@ function atualizarListaGarcons() {
       </thead>
       <tbody>
   `;
-  
+
+  // Adiciona cada garçom como uma linha na tabela
   garconsCadastrados.forEach(garcom => {
     html += `
       <tr>
@@ -209,33 +190,65 @@ function atualizarListaGarcons() {
         <td>${garcom.nome}</td>
         <td>
           <button class="btn-excluir" data-id="${garcom.id}">
-            Excluir
+            <i class="fas fa-trash-alt"></i> Excluir
           </button>
         </td>
       </tr>
     `;
   });
-  
-  html += `</tbody></table>`;
-  listaDiv.innerHTML = html;
 
-  // Adiciona eventos aos botões de excluir
+  html += `</tbody></table>`;
+  container.innerHTML = html;
+
+  // Adiciona os eventos de clique aos botões
+  adicionarEventosExclusao();
+}
+
+// Função para adicionar eventos de exclusão
+function adicionarEventosExclusao() {
   document.querySelectorAll('.btn-excluir').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const id = e.target.getAttribute('data-id');
-      const nome = garconsCadastrados.find(g => g.id == id)?.nome;
-      
-      if (confirm(`Tem certeza que deseja excluir o garçom ${nome}?`)) {
-        await excluirGarcom(id);
-      }
+    btn.addEventListener('click', (e) => {
+      const id = e.currentTarget.getAttribute('data-id');
+      const nome = e.currentTarget.closest('tr').querySelector('td:nth-child(2)').textContent;
+      confirmarExclusao(id, nome);
     });
   });
 }
 
-async function excluirGarcom(id) {
+// Função para confirmar a exclusão
+async function confirmarExclusao(id, nome) {
+  if (confirm(`Tem certeza que deseja excluir o garçom "${nome}"?`)) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/garcons/${id}`, {
+        method: 'DELETE'
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        showMessage(`Garçom "${nome}" excluído com sucesso`, 'success');
+        await carregarGarcons(); // Recarrega a lista
+      } else {
+        throw new Error(data.erro || 'Erro ao excluir');
+      }
+    } catch (error) {
+      console.error('Erro ao excluir:', error);
+      showMessage(error.message, 'error');
+    }
+  }
+}
+
+// Carrega os garçons quando a página é carregada
+document.addEventListener('DOMContentLoaded', carregarGarcons);
+
+async function cadastrarGarcom(nome) {
   try {
-    const response = await fetch(`${API_BASE_URL}/gerente/garcons/${id}`, {
-      method: 'DELETE'
+    const response = await fetch(`${API_BASE_URL}/garcons`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ nome })
     });
 
     const data = await response.json();
@@ -243,48 +256,19 @@ async function excluirGarcom(id) {
     if (response.ok) {
       showMessage(data.mensagem, 'success');
       await carregarGarcons(); // Recarrega a lista
+      return true;
     } else {
-      showMessage(data.erro || 'Erro ao excluir garçom', 'error');
+      // Mensagem mais amigável para garçom existente
+      if (data.erro.includes('já cadastrado')) {
+        showMessage('Um garçom com este nome já está ativo no sistema', 'error');
+      } else {
+        showMessage(data.erro || 'Erro ao cadastrar', 'error');
+      }
+      return false;
     }
   } catch (error) {
-    console.error('Erro ao excluir:', error);
-    showMessage('Erro ao conectar com o servidor', 'error');
+    console.error('Erro:', error);
+    showMessage('Erro de conexão com o servidor', 'error');
+    return false;
   }
 }
-// Cadastrar novo garçom
-document.getElementById('form-cadastrar-garcom').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  
-  const nomeGarcom = document.getElementById('nome-garcom-cadastro').value.trim();
-  
-  if (!nomeGarcom) {
-    showMessage('Por favor, insira o nome do garçom', 'error');
-    return;
-  }
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/gerente/garcons`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ nome: nomeGarcom })
-    });
-
-    const data = await response.json();
-    
-    if (response.ok) {
-      showMessage(data.mensagem, 'success');
-      document.getElementById('nome-garcom-cadastro').value = '';
-      await carregarGarcons(); // Recarrega a lista após cadastro
-    } else {
-      showMessage(data.erro || 'Erro ao cadastrar garçom', 'error');
-    }
-  } catch (error) {
-    console.error('Erro no cadastro:', error);
-    showMessage('Erro ao conectar com o servidor', 'error');
-  }
-});
-
-// Carrega os garçons quando a página é aberta
-document.addEventListener('DOMContentLoaded', carregarGarcons);

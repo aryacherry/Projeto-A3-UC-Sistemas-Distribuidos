@@ -131,40 +131,6 @@ export const cadastrarGarcom = async (req: Request, res: Response) => {
   }
 };
 
-export const excluirGarcom = async (req: Request, res: Response) => {
-  const { id } = req.params;
-
-  // Validação básica
-  if (!id || isNaN(Number(id))) {
-    return res.status(400).json({ erro: 'ID do garçom inválido' });
-  }
-
-  try {
-    // Verifica se o garçom existe
-    const garcom = await pool.query(
-      'SELECT id FROM garcons WHERE id = $1',
-      [id]
-    );
-
-    if (garcom.rows.length === 0) {
-      return res.status(404).json({ erro: 'Garçom não encontrado' });
-    }
-
-    // Marca como inativo (exclusão lógica)
-    await pool.query(
-      'UPDATE garcons SET ativo = false WHERE id = $1',
-      [id]
-    );
-
-    res.json({ mensagem: 'Garçom removido com sucesso' });
-  } catch (error) {
-    console.error('Erro ao excluir garçom:', error);
-    res.status(500).json({ 
-      erro: 'Erro ao excluir garçom'
-    });
-  }
-};
-
 export const listarGarcons = async (req: Request, res: Response) => {
   try {
     const result = await pool.query(
@@ -179,3 +145,43 @@ export const listarGarcons = async (req: Request, res: Response) => {
     res.status(500).json({ erro: 'Erro ao listar garçons' });
   }
 };
+const excluirGarcom = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    // Verifica se o garçom existe
+    const resultado = await pool.query(
+      'SELECT * FROM garcons WHERE id = $1 AND ativo = true',
+      [id]
+    );
+
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({ erro: 'Garçom não encontrado' });
+    }
+
+    // Verifica se o garçom tem reservas associadas
+    const reservas = await pool.query(
+      'SELECT id FROM reservas WHERE garcom_responsavel = $1 LIMIT 1',
+      [id]
+    );
+
+    if (reservas.rows.length > 0) {
+      return res.status(400).json({ 
+        erro: 'Não é possível excluir garçom com reservas associadas' 
+      });
+    }
+
+    // Exclusão lógica (marca como inativo)
+    await pool.query(
+      'UPDATE garcons SET ativo = false WHERE id = $1',
+      [id]
+    );
+
+    res.json({ mensagem: 'Garçom excluído com sucesso' });
+  } catch (error) {
+    console.error('Erro ao excluir garçom:', error);
+    res.status(500).json({ erro: 'Erro ao excluir garçom' });
+  }
+};
+
+export {excluirGarcom};

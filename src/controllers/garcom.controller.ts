@@ -77,38 +77,63 @@ export const getMesas = async (req: Request, res: Response) => {
 export const cadastrarGarcom = async (req: Request, res: Response) => {
   const { nome } = req.body;
 
+  if (!nome || typeof nome !== 'string') {
+    return res.status(400).json({ erro: 'Nome do garçom é obrigatório' });
+  }
+
   try {
-    // Verifica se o garçom já existe
+    // Verifica se já existe um garçom ATIVO com o mesmo nome (case insensitive)
     const existe = await pool.query(
-      `SELECT * FROM garcons WHERE nome = $1`,
-      [nome]
+      `SELECT id FROM garcons 
+       WHERE LOWER(nome) = LOWER($1) AND ativo = true`,
+      [nome.trim()]
     );
 
     if (existe.rows.length > 0) {
-      return res.status(400).json({ erro: 'Garçom já cadastrado.' });
+      return res.status(400).json({ erro: 'Garçom já cadastrado' });
     }
 
-    // Cadastra novo garçom
-    await pool.query(
-      `INSERT INTO garcons (nome) VALUES ($1)`,
-      [nome]
+    // Verifica se existe um registro inativo para reativar
+    const inativo = await pool.query(
+      `SELECT id FROM garcons 
+       WHERE LOWER(nome) = LOWER($1) AND ativo = false`,
+      [nome.trim()]
     );
 
-    res.status(201).json({ mensagem: 'Garçom cadastrado com sucesso.' });
+    if (inativo.rows.length > 0) {
+      // Reativa o garçom existente
+      await pool.query(
+        `UPDATE garcons SET ativo = true 
+         WHERE id = $1`,
+        [inativo.rows[0].id]
+      );
+    } else {
+      // Cadastra novo garçom
+      await pool.query(
+        `INSERT INTO garcons (nome, ativo) 
+         VALUES ($1, true)`,
+        [nome.trim()]
+      );
+    }
+
+    res.status(201).json({ mensagem: 'Garçom cadastrado com sucesso' });
   } catch (error) {
-    console.error('Erro ao cadastrar garçom:', error);
-    res.status(500).json({ erro: 'Erro ao cadastrar garçom.' });
+    console.error('Erro no cadastro:', error);
+    res.status(500).json({ erro: 'Erro interno no servidor' });
   }
 };
 
 export const listarGarcons = async (req: Request, res: Response) => {
   try {
-    const resultado = await pool.query(
-      `SELECT * FROM garcons WHERE ativo = TRUE ORDER BY nome`
+    // Lista apenas garçons ativos
+    const result = await pool.query(
+      `SELECT id, nome FROM garcons 
+       WHERE ativo = true 
+       ORDER BY nome`
     );
-    res.json(resultado.rows);
+    res.json(result.rows);
   } catch (error) {
-    console.error('Erro ao listar garçons:', error);
-    res.status(500).json({ erro: 'Erro ao listar garçons.' });
+    console.error('Erro ao listar:', error);
+    res.status(500).json({ erro: 'Erro ao listar garçons' });
   }
 };
