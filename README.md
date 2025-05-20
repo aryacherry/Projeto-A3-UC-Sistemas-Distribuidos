@@ -118,10 +118,10 @@ Verifique se as tabelas foram criadas:
 Saída esperada:  
 
           Lista de relações
- Esquema |   Nome    | Tipo  |  Dono
----------+-----------+-------+----------
- public  | garcons   | tabela | postgres
- public  | reservas  | tabela | postgres
+| Esquema |   Nome    | Tipo   |  Dono|
+|---------|-----------|--------|--------|
+| public  | garcons   | tabela | postgres|
+| public  | reservas  | tabela | postgres|
 
 
 # 5.2. API
