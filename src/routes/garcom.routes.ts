@@ -4,8 +4,11 @@ import {
     liberarMesa,
     getMesas,
     cadastrarGarcom,
-    listarGarcons
+    listarGarcons 
+    
 } from '../controllers/garcom.controller';
+
+import { excluirGarcom } from '../controllers/gerente.controller';
 
 const router = Router();
 
@@ -19,6 +22,10 @@ router.get('/mesas', getMesas);
 router.post('/garcons', async (req, res) => {
     await cadastrarGarcom(req, res);
 });
+
 router.get('/garcons', listarGarcons);
+router.delete('/garcons/:id', async (req, res) => {
+    await excluirGarcom(req, res);
+});
 
 export default router;
